@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ChatMessage } from "@/components/ChatMessage";
 import { ChatInput } from "@/components/ChatInput";
 import { validatePAN, validateAge, validatePinCode, validateSalary } from "@/utils/validators";
 import { useToast } from "@/components/ui/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 type Question = {
   id: string;
@@ -25,16 +26,110 @@ const questions: Question[] = [
 
 const Index = () => {
   const [currentQuestion, setCurrentQuestion] = useState(0);
-  const [messages, setMessages] = useState<Array<{ text: string; isBot: boolean }>>([
-    { text: questions[0].text, isBot: true },
-  ]);
+  const [messages, setMessages] = useState<Array<{ text: string; isBot: boolean }>>([]);
   const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [sessionId, setSessionId] = useState<string | null>(null);
   const { toast } = useToast();
 
-  const handleSubmit = (answer: string) => {
+  useEffect(() => {
+    const initializeChat = async () => {
+      // Create a new chat session
+      const { data: session, error: sessionError } = await supabase
+        .from('chat_sessions')
+        .insert([{}])
+        .select()
+        .single();
+
+      if (sessionError) {
+        console.error('Error creating chat session:', sessionError);
+        return;
+      }
+
+      setSessionId(session.id);
+
+      // Insert initial bot message
+      const { error: messageError } = await supabase
+        .from('chat_messages')
+        .insert([
+          {
+            session_id: session.id,
+            message: questions[0].text,
+            is_bot: true
+          }
+        ]);
+
+      if (messageError) {
+        console.error('Error inserting initial message:', messageError);
+        return;
+      }
+
+      setMessages([{ text: questions[0].text, isBot: true }]);
+    };
+
+    initializeChat();
+  }, []);
+
+  const handleDynamicResponse = async (userMessage: string) => {
+    try {
+      const response = await fetch('/functions/v1/handle-chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: userMessage,
+          currentQuestion: questions[currentQuestion].id
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to get AI response');
+      }
+
+      const data = await response.json();
+      return data.response;
+    } catch (error) {
+      console.error('Error getting AI response:', error);
+      return "I apologize, but I'm having trouble processing that. Could you please answer the current question?";
+    }
+  };
+
+  const handleSubmit = async (answer: string) => {
+    if (!sessionId) return;
+
     const question = questions[currentQuestion];
     
+    // Store user's message
+    await supabase
+      .from('chat_messages')
+      .insert([
+        {
+          session_id: sessionId,
+          message: answer,
+          is_bot: false
+        }
+      ]);
+
+    // Add user's answer to messages
+    setMessages((prev) => [...prev, { text: answer, isBot: false }]);
+
+    // Check if the answer is valid for the current question
     if (question.validation && !question.validation(answer)) {
+      const aiResponse = await handleDynamicResponse(answer);
+      
+      // Store bot's response
+      await supabase
+        .from('chat_messages')
+        .insert([
+          {
+            session_id: sessionId,
+            message: aiResponse,
+            is_bot: true
+          }
+        ]);
+
+      setMessages((prev) => [...prev, { text: aiResponse, isBot: true }]);
+      
       toast({
         variant: "destructive",
         title: "Invalid Input",
@@ -43,30 +138,53 @@ const Index = () => {
       return;
     }
 
-    // Add user's answer to messages
-    setMessages((prev) => [...prev, { text: answer, isBot: false }]);
-    
-    // Store the answer
+    // Store the valid answer
     setAnswers((prev) => ({ ...prev, [question.id]: answer }));
 
-    // Move to next question
+    // Update session with the new answer
+    await supabase
+      .from('chat_sessions')
+      .update({ [question.id]: answer })
+      .eq('id', sessionId);
+
+    // Move to next question if available
     if (currentQuestion < questions.length - 1) {
       const nextQuestion = questions[currentQuestion + 1];
-      setTimeout(() => {
-        setMessages((prev) => [...prev, { text: nextQuestion.text, isBot: true }]);
-        setCurrentQuestion((prev) => prev + 1);
-      }, 500);
-    } else {
-      // Show completion message
-      setTimeout(() => {
-        setMessages((prev) => [
-          ...prev,
+      
+      // Store next bot question
+      await supabase
+        .from('chat_messages')
+        .insert([
           {
-            text: "Thank you for providing all the information! We'll review your application and get back to you soon.",
-            isBot: true,
-          },
+            session_id: sessionId,
+            message: nextQuestion.text,
+            is_bot: true
+          }
         ]);
-      }, 500);
+
+      setMessages((prev) => [...prev, { text: nextQuestion.text, isBot: true }]);
+      setCurrentQuestion((prev) => prev + 1);
+    } else {
+      // Mark session as completed
+      await supabase
+        .from('chat_sessions')
+        .update({ completed: true })
+        .eq('id', sessionId);
+
+      const completionMessage = "Thank you for providing all the information! We'll review your application and get back to you soon.";
+      
+      // Store completion message
+      await supabase
+        .from('chat_messages')
+        .insert([
+          {
+            session_id: sessionId,
+            message: completionMessage,
+            is_bot: true
+          }
+        ]);
+
+      setMessages((prev) => [...prev, { text: completionMessage, isBot: true }]);
     }
   };
 

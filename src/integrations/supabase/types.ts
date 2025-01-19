@@ -9,7 +9,80 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      chat_messages: {
+        Row: {
+          created_at: string
+          id: string
+          is_bot: boolean
+          message: string
+          session_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_bot: boolean
+          message: string
+          session_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_bot?: boolean
+          message?: string
+          session_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_messages_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "chat_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chat_sessions: {
+        Row: {
+          city: string | null
+          completed: boolean | null
+          created_at: string
+          date_of_birth: string | null
+          employment_type: string | null
+          gender: string | null
+          id: string
+          monthly_salary: number | null
+          name: string | null
+          pan_card: string | null
+          pin_code: string | null
+        }
+        Insert: {
+          city?: string | null
+          completed?: boolean | null
+          created_at?: string
+          date_of_birth?: string | null
+          employment_type?: string | null
+          gender?: string | null
+          id?: string
+          monthly_salary?: number | null
+          name?: string | null
+          pan_card?: string | null
+          pin_code?: string | null
+        }
+        Update: {
+          city?: string | null
+          completed?: boolean | null
+          created_at?: string
+          date_of_birth?: string | null
+          employment_type?: string | null
+          gender?: string | null
+          id?: string
+          monthly_salary?: number | null
+          name?: string | null
+          pan_card?: string | null
+          pin_code?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
