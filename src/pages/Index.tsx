@@ -16,11 +16,11 @@ type Question = {
 const questions: Question[] = [
   { id: "name", text: "Hello! I'm here to help you with your personal loan application. First, could you please tell me your name?", type: "text", placeholder: "Enter your full name" },
   { id: "gender", text: "What is your gender?", type: "text", placeholder: "Male/Female/Other" },
-  { id: "dob", text: "Please enter your date of birth (YYYY-MM-DD):", type: "date", validation: (value) => validateAge(new Date(value)), placeholder: "YYYY-MM-DD" },
-  { id: "pan", text: "Please provide your PAN card number:", type: "text", validation: validatePAN, placeholder: "ABCDE1234F" },
-  { id: "employment", text: "What is your employment type?", type: "text", placeholder: "Salaried/Self-employed" },
-  { id: "salary", text: "What is your net monthly salary?", type: "number", validation: validateSalary, placeholder: "Enter amount in INR" },
-  { id: "pincode", text: "Please enter your PIN code:", type: "text", validation: validatePinCode, placeholder: "Enter 6-digit PIN code" },
+  { id: "date_of_birth", text: "Please enter your date of birth (YYYY-MM-DD):", type: "date", validation: (value) => validateAge(new Date(value)), placeholder: "YYYY-MM-DD" },
+  { id: "pan_card", text: "Please provide your PAN card number:", type: "text", validation: validatePAN, placeholder: "ABCDE1234F" },
+  { id: "employment_type", text: "What is your employment type?", type: "text", placeholder: "Salaried/Self-employed" },
+  { id: "monthly_salary", text: "What is your net monthly salary?", type: "number", validation: validateSalary, placeholder: "Enter amount in INR" },
+  { id: "pin_code", text: "Please enter your PIN code:", type: "text", validation: validatePinCode, placeholder: "Enter 6-digit PIN code" },
   { id: "city", text: "Finally, please confirm your city:", type: "text", placeholder: "Enter city name" },
 ];
 
