@@ -13,41 +13,52 @@ serve(async (req) => {
 
   try {
     const { message, currentQuestion } = await req.json();
+    const apiKey = Deno.env.get('GEMINI_API_KEY');
 
     // System message to guide the AI's responses
-    const systemMessage = `You are a helpful loan application assistant. You are currently asking the user about ${currentQuestion}. 
+    const prompt = `You are a helpful loan application assistant. You are currently asking the user about ${currentQuestion}. 
     If the user asks something unrelated, politely acknowledge their question and guide them back to providing the required information.
-    Keep responses professional, concise, and friendly. Don't provide specific loan terms or conditions.`;
+    Keep responses professional, concise, and friendly. Don't provide specific loan terms or conditions.
+    
+    User message: ${message}`;
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=' + apiKey, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [
-          { role: 'system', content: systemMessage },
-          { role: 'user', content: message }
-        ],
-        temperature: 0.7,
-      }),
+        contents: [{
+          parts: [{
+            text: prompt
+          }]
+        }]
+      })
     });
 
     if (!response.ok) {
-      throw new Error(`OpenAI API error: ${await response.text()}`);
+      console.error('Gemini API error:', await response.text());
+      throw new Error('Failed to get AI response');
     }
 
     const data = await response.json();
+    console.log('Gemini API response:', data);
+
+    // Extract the response text from Gemini's response structure
+    const aiResponse = data.candidates[0].content.parts[0].text;
+
     return new Response(
-      JSON.stringify({ response: data.choices[0].message.content }),
+      JSON.stringify({ response: aiResponse }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error) {
+    console.error('Error in handle-chat function:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message,
+        response: "I apologize, but I'm having trouble processing that. Could you please answer the current question?" 
+      }),
       { 
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
