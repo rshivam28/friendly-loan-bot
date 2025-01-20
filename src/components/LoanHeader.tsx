@@ -3,8 +3,8 @@ export const LoanHeader = () => {
     <div className="bg-[#00204e] p-4 flex items-center justify-between">
       <div className="flex items-center gap-2">
         <img 
-          src="/lovable-uploads/9c195468-5443-43e5-9eb0-d552f84a4dba.png" 
-          alt="Bajaj Finance Logo" 
+          src="/lovable-uploads/e7809e7a-6dde-44a8-8683-250ba9a37ade.png" 
+          alt="Bajaj Finserv Logo" 
           className="h-8"
         />
         <h1 className="text-white text-xl font-semibold">Personal Loan Application</h1>
