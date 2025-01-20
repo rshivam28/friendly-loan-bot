@@ -14,18 +14,22 @@ export const VoiceAssistant = ({
 }) => {
   const [isMuted, setIsMuted] = useState(false);
   const conversation = useConversation({
-    voiceId: "21m00Tcm4TlvDq8ikWAM", // default voice
+    overrides: {
+      tts: {
+        voiceId: "21m00Tcm4TlvDq8ikWAM" // Rachel voice
+      }
+    }
   });
 
   useEffect(() => {
     if (isListening) {
       conversation.startSession({
-        agentId: "your-agent-id" // Replace with your actual agent ID
+        agentId: "your-agent-id"
       });
     } else {
       conversation.endSession();
     }
-  }, [isListening]);
+  }, [isListening, conversation]);
 
   const toggleListening = () => {
     setIsListening(!isListening);
