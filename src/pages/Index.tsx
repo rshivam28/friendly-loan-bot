@@ -4,6 +4,9 @@ import { ChatInput } from "@/components/ChatInput";
 import { validatePAN, validateAge, validatePinCode, validateSalary } from "@/utils/validators";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { LoanHeader } from "@/components/LoanHeader";
+import { LoanProgress } from "@/components/LoanProgress";
+import { VoiceAssistant } from "@/components/VoiceAssistant";
 
 type Question = {
   id: string;
@@ -29,6 +32,7 @@ const Index = () => {
   const [messages, setMessages] = useState<Array<{ text: string; isBot: boolean }>>([]);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [sessionId, setSessionId] = useState<string | null>(null);
+  const [isListening, setIsListening] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -177,26 +181,35 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
-      <div className="mx-auto max-w-2xl bg-white rounded-xl shadow-lg p-4 min-h-[80vh] flex flex-col">
-        <div className="flex-1 overflow-y-auto space-y-4 mb-4">
-          {messages.map((message, index) => (
-            <ChatMessage
-              key={index}
-              message={message.text}
-              isBot={message.isBot}
+    <div className="min-h-screen bg-gray-50">
+      <LoanHeader />
+      <LoanProgress currentStep={currentQuestion} />
+      <div className="p-4">
+        <div className="mx-auto max-w-2xl bg-white rounded-xl shadow-lg p-4 min-h-[60vh] flex flex-col">
+          <div className="flex-1 overflow-y-auto space-y-4 mb-4">
+            {messages.map((message, index) => (
+              <ChatMessage
+                key={index}
+                message={message.text}
+                isBot={message.isBot}
+              />
+            ))}
+          </div>
+          <div className="mt-auto">
+            <ChatInput
+              onSubmit={handleSubmit}
+              placeholder={questions[currentQuestion].placeholder}
+              type={questions[currentQuestion].type}
+              disabled={currentQuestion >= questions.length}
             />
-          ))}
-        </div>
-        <div className="mt-auto">
-          <ChatInput
-            onSubmit={handleSubmit}
-            placeholder={questions[currentQuestion].placeholder}
-            type={questions[currentQuestion].type}
-            disabled={currentQuestion >= questions.length}
-          />
+          </div>
         </div>
       </div>
+      <VoiceAssistant 
+        onMessage={handleSubmit}
+        isListening={isListening}
+        setIsListening={setIsListening}
+      />
     </div>
   );
 };
