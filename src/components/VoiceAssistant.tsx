@@ -14,15 +14,16 @@ export const VoiceAssistant = ({
 }) => {
   const [isMuted, setIsMuted] = useState(false);
   const conversation = useConversation({
-    apiKey: "your-eleven-labs-api-key",
     voiceId: "21m00Tcm4TlvDq8ikWAM", // default voice
   });
 
   useEffect(() => {
     if (isListening) {
-      conversation.start();
+      conversation.startSession({
+        agentId: "your-agent-id" // Replace with your actual agent ID
+      });
     } else {
-      conversation.stop();
+      conversation.endSession();
     }
   }, [isListening]);
 

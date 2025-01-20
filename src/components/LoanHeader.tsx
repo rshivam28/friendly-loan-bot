@@ -1,5 +1,3 @@
-import { Image } from "@/components/ui/image";
-
 export const LoanHeader = () => {
   return (
     <div className="bg-[#00204e] p-4 flex items-center justify-between">
