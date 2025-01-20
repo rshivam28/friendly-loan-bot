@@ -33,7 +33,6 @@ const Index = () => {
 
   useEffect(() => {
     const initializeChat = async () => {
-      // Create a new chat session
       const { data: session, error: sessionError } = await supabase
         .from('chat_sessions')
         .insert([{}])
@@ -47,7 +46,6 @@ const Index = () => {
 
       setSessionId(session.id);
 
-      // Insert initial bot message
       const { error: messageError } = await supabase
         .from('chat_messages')
         .insert([
@@ -99,7 +97,6 @@ const Index = () => {
 
     const question = questions[currentQuestion];
     
-    // Store user's message
     await supabase
       .from('chat_messages')
       .insert([
@@ -110,14 +107,11 @@ const Index = () => {
         }
       ]);
 
-    // Add user's answer to messages
     setMessages((prev) => [...prev, { text: answer, isBot: false }]);
 
-    // Check if the answer is valid for the current question
     if (question.validation && !question.validation(answer)) {
       const aiResponse = await handleDynamicResponse(answer);
       
-      // Store bot's response
       await supabase
         .from('chat_messages')
         .insert([
@@ -138,20 +132,16 @@ const Index = () => {
       return;
     }
 
-    // Store the valid answer
     setAnswers((prev) => ({ ...prev, [question.id]: answer }));
 
-    // Update session with the new answer
     await supabase
       .from('chat_sessions')
       .update({ [question.id]: answer })
       .eq('id', sessionId);
 
-    // Move to next question if available
     if (currentQuestion < questions.length - 1) {
       const nextQuestion = questions[currentQuestion + 1];
       
-      // Store next bot question
       await supabase
         .from('chat_messages')
         .insert([
@@ -165,7 +155,6 @@ const Index = () => {
       setMessages((prev) => [...prev, { text: nextQuestion.text, isBot: true }]);
       setCurrentQuestion((prev) => prev + 1);
     } else {
-      // Mark session as completed
       await supabase
         .from('chat_sessions')
         .update({ completed: true })
@@ -173,7 +162,6 @@ const Index = () => {
 
       const completionMessage = "Thank you for providing all the information! We'll review your application and get back to you soon.";
       
-      // Store completion message
       await supabase
         .from('chat_messages')
         .insert([
