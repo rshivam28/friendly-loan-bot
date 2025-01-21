@@ -99,6 +99,7 @@ const Index = () => {
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [isListening, setIsListening] = useState(false);
+  const [isApplicationComplete, setIsApplicationComplete] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -137,7 +138,22 @@ const Index = () => {
     initializeChat();
   }, []);
 
-  const handleDynamicResponse = async (userMessage: string) => {
+  const handlePostApplicationQuestion = async (question: string) => {
+    if (!sessionId) return;
+
+    // Add user's question to chat
+    await supabase
+      .from('chat_messages')
+      .insert([
+        {
+          session_id: sessionId,
+          message: question,
+          is_bot: false
+        }
+      ]);
+
+    setMessages((prev) => [...prev, { text: question, isBot: false }]);
+
     try {
       const response = await fetch('/functions/v1/handle-chat', {
         method: 'POST',
@@ -145,8 +161,9 @@ const Index = () => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          message: userMessage,
-          currentQuestion: questions[currentQuestion].id
+          message: question,
+          currentQuestion: 'post_application',
+          applicationData: answers
         }),
       });
 
@@ -155,15 +172,43 @@ const Index = () => {
       }
 
       const data = await response.json();
-      return data.response;
+      
+      await supabase
+        .from('chat_messages')
+        .insert([
+          {
+            session_id: sessionId,
+            message: data.response,
+            is_bot: true
+          }
+        ]);
+
+      setMessages((prev) => [...prev, { text: data.response, isBot: true }]);
     } catch (error) {
       console.error('Error getting AI response:', error);
-      return "I apologize, but I'm having trouble processing that. Could you please answer the current question?";
+      const errorMessage = "I apologize, but I'm having trouble processing your question. Please try again later.";
+      
+      await supabase
+        .from('chat_messages')
+        .insert([
+          {
+            session_id: sessionId,
+            message: errorMessage,
+            is_bot: true
+          }
+        ]);
+
+      setMessages((prev) => [...prev, { text: errorMessage, isBot: true }]);
     }
   };
 
   const handleSubmit = async (answer: string) => {
     if (!sessionId) return;
+
+    if (isApplicationComplete) {
+      await handlePostApplicationQuestion(answer);
+      return;
+    }
 
     const question = questions[currentQuestion];
     
@@ -230,7 +275,7 @@ const Index = () => {
         .update({ completed: true })
         .eq('id', sessionId);
 
-      const completionMessage = "Thank you for providing all the information! We'll review your application and get back to you soon.";
+      const completionMessage = "Thank you for providing all the information! We'll review your application and get back to you soon. Feel free to ask any questions you have about our loan services.";
       
       await supabase
         .from('chat_messages')
@@ -243,6 +288,7 @@ const Index = () => {
         ]);
 
       setMessages((prev) => [...prev, { text: completionMessage, isBot: true }]);
+      setIsApplicationComplete(true);
     }
   };
 

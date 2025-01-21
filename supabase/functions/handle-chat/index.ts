@@ -12,15 +12,27 @@ serve(async (req) => {
   }
 
   try {
-    const { message, currentQuestion } = await req.json();
+    const { message, currentQuestion, applicationData } = await req.json();
     const apiKey = Deno.env.get('GEMINI_API_KEY');
 
-    // System message to guide the AI's responses
-    const prompt = `You are a helpful loan application assistant. You are currently asking the user about ${currentQuestion}. 
-    If the user asks something unrelated, politely acknowledge their question and guide them back to providing the required information.
-    Keep responses professional, concise, and friendly. Don't provide specific loan terms or conditions.
-    
-    User message: ${message}`;
+    let prompt;
+    if (currentQuestion === 'post_application') {
+      // Create a context-aware prompt for post-application questions
+      prompt = `You are a helpful loan service assistant. The user has completed their loan application with the following details:
+      ${applicationData ? JSON.stringify(applicationData, null, 2) : 'Application data not available'}
+      
+      Please provide helpful information about our loan services, policies, and general guidance. 
+      Keep responses professional, friendly, and focused on general loan information without making promises about approval or specific terms.
+      
+      User question: ${message}`;
+    } else {
+      // Use the existing prompt for application process
+      prompt = `You are a helpful loan application assistant. You are currently asking the user about ${currentQuestion}. 
+      If the user asks something unrelated, politely acknowledge their question and guide them back to providing the required information.
+      Keep responses professional, concise, and friendly. Don't provide specific loan terms or conditions.
+      
+      User message: ${message}`;
+    }
 
     const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=' + apiKey, {
       method: 'POST',
@@ -42,9 +54,6 @@ serve(async (req) => {
     }
 
     const data = await response.json();
-    console.log('Gemini API response:', data);
-
-    // Extract the response text from Gemini's response structure
     const aiResponse = data.candidates[0].content.parts[0].text;
 
     return new Response(
@@ -57,7 +66,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         error: error.message,
-        response: "I apologize, but I'm having trouble processing that. Could you please answer the current question?" 
+        response: "I apologize, but I'm having trouble processing that. Could you please try again?" 
       }),
       { 
         status: 500,
