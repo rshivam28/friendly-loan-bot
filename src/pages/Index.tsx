@@ -248,9 +248,13 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <LoanHeader />
-      <LoanProgress currentStep={currentQuestion} />
-      <div className="p-4">
+      <div className="fixed top-0 left-0 right-0 z-50">
+        <LoanHeader />
+        <div className="bg-white shadow-md">
+          <LoanProgress currentStep={currentQuestion} />
+        </div>
+      </div>
+      <div className="p-4 mt-[160px]">
         <div className="mx-auto max-w-2xl bg-white rounded-xl shadow-lg p-4 min-h-[60vh] flex flex-col">
           <div className="flex-1 overflow-y-auto space-y-4 mb-4">
             {messages.map((message, index) => (
