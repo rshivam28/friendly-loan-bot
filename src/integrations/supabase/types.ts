@@ -48,9 +48,16 @@ export type Database = {
           completed: boolean | null
           created_at: string
           date_of_birth: string | null
+          email_otp: string | null
+          email_verified: boolean | null
           employment_type: string | null
           gender: string | null
           id: string
+          interest_rate: number | null
+          loan_amount: number | null
+          loan_status: string | null
+          loan_tenure: number | null
+          monthly_emi: number | null
           monthly_salary: number | null
           name: string | null
           office_address_line1: string | null
@@ -69,9 +76,16 @@ export type Database = {
           completed?: boolean | null
           created_at?: string
           date_of_birth?: string | null
+          email_otp?: string | null
+          email_verified?: boolean | null
           employment_type?: string | null
           gender?: string | null
           id?: string
+          interest_rate?: number | null
+          loan_amount?: number | null
+          loan_status?: string | null
+          loan_tenure?: number | null
+          monthly_emi?: number | null
           monthly_salary?: number | null
           name?: string | null
           office_address_line1?: string | null
@@ -90,9 +104,16 @@ export type Database = {
           completed?: boolean | null
           created_at?: string
           date_of_birth?: string | null
+          email_otp?: string | null
+          email_verified?: boolean | null
           employment_type?: string | null
           gender?: string | null
           id?: string
+          interest_rate?: number | null
+          loan_amount?: number | null
+          loan_status?: string | null
+          loan_tenure?: number | null
+          monthly_emi?: number | null
           monthly_salary?: number | null
           name?: string | null
           office_address_line1?: string | null

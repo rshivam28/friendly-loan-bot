@@ -16,6 +16,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { LoanHeader } from "@/components/LoanHeader";
 import { LoanProgress } from "@/components/LoanProgress";
 import { VoiceAssistant } from "@/components/VoiceAssistant";
+import { CelebrationOverlay } from "@/components/CelebrationOverlay";
 
 type Question = {
   id: string;
@@ -27,7 +28,6 @@ type Question = {
 };
 
 const questions: Question[] = [
-  // Personal Details
   { 
     id: "name", 
     text: "Hello! I'm here to help you with your personal loan application. First, could you please tell me your full name (First Name Last Name)?", 
@@ -60,7 +60,6 @@ const questions: Question[] = [
     placeholder: "ABCDE1234F",
     format: "5 Letters + 4 Numbers + 1 Letter"
   },
-  // Income Verification
   {
     id: "payslip",
     text: "Please upload your latest salary slip in PDF format:",
@@ -77,7 +76,6 @@ const questions: Question[] = [
     placeholder: "Upload PDF file",
     format: "PDF file up to 5MB"
   },
-  // Employment Details
   {
     id: "company_name",
     text: "What is the name of the company you work for?",
@@ -92,7 +90,6 @@ const questions: Question[] = [
     placeholder: "Enter company name",
     format: "2-100 characters"
   },
-  // Office Address
   {
     id: "office_address_line1",
     text: "Please enter your office address line 1 (Building name, Street):",
@@ -133,7 +130,7 @@ const questions: Question[] = [
     id: "office_state",
     text: "Please enter your office state:",
     type: "text",
-    validation: validateCity, // Using same validation as city
+    validation: validateCity,
     placeholder: "Enter state name",
     format: "Letters only, 2-50 characters"
   },
@@ -169,6 +166,8 @@ const Index = () => {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [isListening, setIsListening] = useState(false);
   const [isApplicationComplete, setIsApplicationComplete] = useState(false);
+  const [showCelebration, setShowCelebration] = useState(false);
+  const [celebrationMessage, setCelebrationMessage] = useState("");
   const { toast } = useToast();
 
   useEffect(() => {
@@ -210,7 +209,6 @@ const Index = () => {
   const handlePostApplicationQuestion = async (question: string) => {
     if (!sessionId) return;
 
-    // Add user's question to chat
     await supabase
       .from('chat_messages')
       .insert([
@@ -358,6 +356,15 @@ const Index = () => {
       .update({ [question.id]: answer })
       .eq('id', sessionId);
 
+    const currentSection = getSectionFromQuestion(currentQuestion);
+    const nextSection = getSectionFromQuestion(currentQuestion + 1);
+
+    if (currentSection !== nextSection) {
+      setCelebrationMessage(`Great job! You've completed the ${currentSection} section!`);
+      setShowCelebration(true);
+      setTimeout(() => setShowCelebration(false), 5000);
+    }
+
     if (currentQuestion < questions.length - 1) {
       const nextQuestion = questions[currentQuestion + 1];
       
@@ -393,11 +400,24 @@ const Index = () => {
 
       setMessages((prev) => [...prev, { text: completionMessage, isBot: true }]);
       setIsApplicationComplete(true);
+      setCelebrationMessage("Congratulations! Your loan application is complete! 🎉");
+      setShowCelebration(true);
     }
+  };
+
+  const getSectionFromQuestion = (questionIndex: number) => {
+    if (questionIndex < 4) return "Personal Details";
+    if (questionIndex < 5) return "Income Verification";
+    if (questionIndex < 6) return "Employment Details";
+    if (questionIndex < 11) return "Office Address";
+    if (questionIndex < 12) return "Email Verification";
+    if (questionIndex < 13) return "Offer Details";
+    return "Loan Summary";
   };
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {showCelebration && <CelebrationOverlay message={celebrationMessage} />}
       <div className="fixed top-0 left-0 right-0 z-50">
         <LoanHeader />
         <div className="bg-white shadow-md">
@@ -405,13 +425,14 @@ const Index = () => {
         </div>
       </div>
       <div className="p-4 mt-[160px]">
-        <div className="mx-auto max-w-2xl bg-white rounded-xl shadow-lg p-4 min-h-[60vh] flex flex-col">
+        <div className="mx-auto max-w-2xl bg-white rounded-xl shadow-lg p-4 min-h-[60vh] flex flex-col animate-fade-in">
           <div className="flex-1 overflow-y-auto space-y-4 mb-4">
             {messages.map((message, index) => (
               <ChatMessage
                 key={index}
                 message={message.text}
                 isBot={message.isBot}
+                className="animate-message-fade-in"
               />
             ))}
           </div>
