@@ -1,7 +1,16 @@
 import { useState, useEffect } from "react";
 import { ChatMessage } from "@/components/ChatMessage";
 import { ChatInput } from "@/components/ChatInput";
-import { validatePAN, validateAge, validatePinCode, validateSalary } from "@/utils/validators";
+import { 
+  validateName, 
+  validateGender, 
+  validateAge, 
+  validatePAN, 
+  validateEmploymentType, 
+  validateSalary, 
+  validatePinCode, 
+  validateCity 
+} from "@/utils/validators";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { LoanHeader } from "@/components/LoanHeader";
@@ -12,19 +21,76 @@ type Question = {
   id: string;
   text: string;
   type: string;
-  validation?: (value: string) => boolean;
+  validation: (value: string) => { isValid: boolean; message: string } | boolean;
   placeholder: string;
+  format?: string;
 };
 
 const questions: Question[] = [
-  { id: "name", text: "Hello! I'm here to help you with your personal loan application. First, could you please tell me your name?", type: "text", placeholder: "Enter your full name" },
-  { id: "gender", text: "What is your gender?", type: "text", placeholder: "Male/Female/Other" },
-  { id: "date_of_birth", text: "Please enter your date of birth (YYYY-MM-DD):", type: "date", validation: (value) => validateAge(new Date(value)), placeholder: "YYYY-MM-DD" },
-  { id: "pan_card", text: "Please provide your PAN card number:", type: "text", validation: validatePAN, placeholder: "ABCDE1234F" },
-  { id: "employment_type", text: "What is your employment type?", type: "text", placeholder: "Salaried/Self-employed" },
-  { id: "monthly_salary", text: "What is your net monthly salary?", type: "number", validation: validateSalary, placeholder: "Enter amount in INR" },
-  { id: "pin_code", text: "Please enter your PIN code:", type: "text", validation: validatePinCode, placeholder: "Enter 6-digit PIN code" },
-  { id: "city", text: "Finally, please confirm your city:", type: "text", placeholder: "Enter city name" },
+  { 
+    id: "name", 
+    text: "Hello! I'm here to help you with your personal loan application. First, could you please tell me your full name (First Name Last Name)?", 
+    type: "text", 
+    validation: validateName,
+    placeholder: "e.g., John Smith",
+    format: "First Name Last Name"
+  },
+  { 
+    id: "gender", 
+    text: "What is your gender?", 
+    type: "text", 
+    validation: validateGender,
+    placeholder: "Male/Female/Other",
+    format: "Enter Male, Female, or Other"
+  },
+  { 
+    id: "date_of_birth", 
+    text: "Please enter your date of birth (You must be at least 18 years old):", 
+    type: "date", 
+    validation: (value) => validateAge(new Date(value)),
+    placeholder: "YYYY-MM-DD",
+    format: "YYYY-MM-DD"
+  },
+  { 
+    id: "pan_card", 
+    text: "Please provide your PAN card number:", 
+    type: "text", 
+    validation: validatePAN,
+    placeholder: "ABCDE1234F",
+    format: "5 Letters + 4 Numbers + 1 Letter"
+  },
+  { 
+    id: "employment_type", 
+    text: "What is your employment type?", 
+    type: "text", 
+    validation: validateEmploymentType,
+    placeholder: "Salaried/Self-employed",
+    format: "Enter Salaried or Self-employed"
+  },
+  { 
+    id: "monthly_salary", 
+    text: "What is your net monthly salary? (Min: ₹10,000, Max: ₹1,00,00,000)", 
+    type: "number", 
+    validation: validateSalary,
+    placeholder: "Enter amount in INR",
+    format: "Enter amount between 10,000 and 1,00,00,000"
+  },
+  { 
+    id: "pin_code", 
+    text: "Please enter your PIN code:", 
+    type: "text", 
+    validation: validatePinCode,
+    placeholder: "Enter 6-digit PIN code",
+    format: "6 digits starting with non-zero"
+  },
+  { 
+    id: "city", 
+    text: "Finally, please confirm your city:", 
+    type: "text", 
+    validation: validateCity,
+    placeholder: "Enter city name",
+    format: "Letters only, 2-50 characters"
+  },
 ];
 
 const Index = () => {
