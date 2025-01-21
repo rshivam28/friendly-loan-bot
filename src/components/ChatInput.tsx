@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useState } from "react";
+import { useState, useRef } from "react";
 
 interface ChatInputProps {
   onSubmit: (value: string) => void;
@@ -11,14 +11,36 @@ interface ChatInputProps {
 
 export const ChatInput = ({ onSubmit, placeholder, type = "text", disabled }: ChatInputProps) => {
   const [value, setValue] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (value.trim()) {
+    if (type === 'file' && fileInputRef.current?.files?.[0]) {
+      onSubmit(fileInputRef.current.files[0]);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    } else if (value.trim()) {
       onSubmit(value.trim());
       setValue("");
     }
   };
+
+  if (type === 'file') {
+    return (
+      <form onSubmit={handleSubmit} className="flex gap-2">
+        <Input
+          ref={fileInputRef}
+          type="file"
+          accept=".pdf"
+          className="flex-1"
+          disabled={disabled}
+          onChange={(e) => setValue(e.target.value)}
+        />
+        <Button type="submit" disabled={disabled || !value}>
+          Upload
+        </Button>
+      </form>
+    );
+  }
 
   return (
     <form onSubmit={handleSubmit} className="flex gap-2">

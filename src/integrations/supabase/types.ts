@@ -44,6 +44,7 @@ export type Database = {
       chat_sessions: {
         Row: {
           city: string | null
+          company_name: string | null
           completed: boolean | null
           created_at: string
           date_of_birth: string | null
@@ -52,11 +53,19 @@ export type Database = {
           id: string
           monthly_salary: number | null
           name: string | null
+          office_address_line1: string | null
+          office_address_line2: string | null
+          office_city: string | null
+          office_email: string | null
+          office_pincode: string | null
+          office_state: string | null
           pan_card: string | null
+          payslip_url: string | null
           pin_code: string | null
         }
         Insert: {
           city?: string | null
+          company_name?: string | null
           completed?: boolean | null
           created_at?: string
           date_of_birth?: string | null
@@ -65,11 +74,19 @@ export type Database = {
           id?: string
           monthly_salary?: number | null
           name?: string | null
+          office_address_line1?: string | null
+          office_address_line2?: string | null
+          office_city?: string | null
+          office_email?: string | null
+          office_pincode?: string | null
+          office_state?: string | null
           pan_card?: string | null
+          payslip_url?: string | null
           pin_code?: string | null
         }
         Update: {
           city?: string | null
+          company_name?: string | null
           completed?: boolean | null
           created_at?: string
           date_of_birth?: string | null
@@ -78,7 +95,14 @@ export type Database = {
           id?: string
           monthly_salary?: number | null
           name?: string | null
+          office_address_line1?: string | null
+          office_address_line2?: string | null
+          office_city?: string | null
+          office_email?: string | null
+          office_pincode?: string | null
+          office_state?: string | null
           pan_card?: string | null
+          payslip_url?: string | null
           pin_code?: string | null
         }
         Relationships: []

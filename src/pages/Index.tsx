@@ -27,6 +27,7 @@ type Question = {
 };
 
 const questions: Question[] = [
+  // Personal Details
   { 
     id: "name", 
     text: "Hello! I'm here to help you with your personal loan application. First, could you please tell me your full name (First Name Last Name)?", 
@@ -59,38 +60,106 @@ const questions: Question[] = [
     placeholder: "ABCDE1234F",
     format: "5 Letters + 4 Numbers + 1 Letter"
   },
-  { 
-    id: "employment_type", 
-    text: "What is your employment type?", 
-    type: "text", 
-    validation: validateEmploymentType,
-    placeholder: "Salaried/Self-employed",
-    format: "Enter Salaried or Self-employed"
+  // Income Verification
+  {
+    id: "payslip",
+    text: "Please upload your latest salary slip in PDF format:",
+    type: "file",
+    validation: (file) => {
+      if (!file) return { isValid: false, message: "Please upload a file" };
+      const fileObj = file as File;
+      const isValidType = fileObj.type === 'application/pdf';
+      const isValidSize = fileObj.size <= 5 * 1024 * 1024; // 5MB limit
+      if (!isValidType) return { isValid: false, message: "Please upload a PDF file" };
+      if (!isValidSize) return { isValid: false, message: "File size should be less than 5MB" };
+      return { isValid: true, message: "" };
+    },
+    placeholder: "Upload PDF file",
+    format: "PDF file up to 5MB"
   },
-  { 
-    id: "monthly_salary", 
-    text: "What is your net monthly salary? (Min: ₹10,000, Max: ₹1,00,00,000)", 
-    type: "number", 
-    validation: validateSalary,
-    placeholder: "Enter amount in INR",
-    format: "Enter amount between 10,000 and 1,00,00,000"
+  // Employment Details
+  {
+    id: "company_name",
+    text: "What is the name of the company you work for?",
+    type: "text",
+    validation: (value) => {
+      const isValid = value.length >= 2 && value.length <= 100;
+      return { 
+        isValid, 
+        message: isValid ? "" : "Company name should be between 2 and 100 characters" 
+      };
+    },
+    placeholder: "Enter company name",
+    format: "2-100 characters"
   },
-  { 
-    id: "pin_code", 
-    text: "Please enter your PIN code:", 
-    type: "text", 
-    validation: validatePinCode,
-    placeholder: "Enter 6-digit PIN code",
-    format: "6 digits starting with non-zero"
+  // Office Address
+  {
+    id: "office_address_line1",
+    text: "Please enter your office address line 1 (Building name, Street):",
+    type: "text",
+    validation: (value) => {
+      const isValid = value.length >= 5 && value.length <= 100;
+      return {
+        isValid,
+        message: isValid ? "" : "Address should be between 5 and 100 characters"
+      };
+    },
+    placeholder: "Building name, Street",
+    format: "5-100 characters"
   },
-  { 
-    id: "city", 
-    text: "Finally, please confirm your city:", 
-    type: "text", 
+  {
+    id: "office_address_line2",
+    text: "Please enter address line 2 (Area, Landmark):",
+    type: "text",
+    validation: (value) => {
+      const isValid = value.length >= 5 && value.length <= 100;
+      return {
+        isValid,
+        message: isValid ? "" : "Address should be between 5 and 100 characters"
+      };
+    },
+    placeholder: "Area, Landmark",
+    format: "5-100 characters"
+  },
+  {
+    id: "office_city",
+    text: "Please enter your office city:",
+    type: "text",
     validation: validateCity,
     placeholder: "Enter city name",
     format: "Letters only, 2-50 characters"
   },
+  {
+    id: "office_state",
+    text: "Please enter your office state:",
+    type: "text",
+    validation: validateCity, // Using same validation as city
+    placeholder: "Enter state name",
+    format: "Letters only, 2-50 characters"
+  },
+  {
+    id: "office_pincode",
+    text: "Please enter your office PIN code:",
+    type: "text",
+    validation: validatePinCode,
+    placeholder: "Enter 6-digit PIN code",
+    format: "6 digits starting with non-zero"
+  },
+  {
+    id: "office_email",
+    text: "Please enter your official email address:",
+    type: "email",
+    validation: (value) => {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      const isValid = emailRegex.test(value);
+      return {
+        isValid,
+        message: isValid ? "" : "Please enter a valid email address"
+      };
+    },
+    placeholder: "name@company.com",
+    format: "Valid email address"
+  }
 ];
 
 const Index = () => {
@@ -223,6 +292,41 @@ const Index = () => {
       ]);
 
     setMessages((prev) => [...prev, { text: answer, isBot: false }]);
+
+    if (question.type === 'file') {
+      const formData = new FormData();
+      formData.append('file', answer);
+      formData.append('sessionId', sessionId);
+
+      try {
+        const response = await fetch('/functions/v1/handle-file-upload', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to upload file');
+        }
+
+        const data = await response.json();
+        
+        if (data.error) {
+          toast({
+            variant: "destructive",
+            title: "Upload Error",
+            description: data.error,
+          });
+          return;
+        }
+      } catch (error) {
+        toast({
+          variant: "destructive",
+          title: "Upload Error",
+          description: "Failed to upload file. Please try again.",
+        });
+        return;
+      }
+    }
 
     if (question.validation && !question.validation(answer)) {
       const aiResponse = await handleDynamicResponse(answer);
