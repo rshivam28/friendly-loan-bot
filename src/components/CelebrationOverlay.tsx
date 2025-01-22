@@ -11,7 +11,7 @@ export const CelebrationOverlay = ({ message }: CelebrationOverlayProps) => {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Show celebration toast
+    // Show celebration toast only once when the component mounts
     toast({
       title: "🎉 Hurray!",
       description: message,
@@ -24,25 +24,21 @@ export const CelebrationOverlay = ({ message }: CelebrationOverlayProps) => {
     }, 5000);
 
     return () => clearTimeout(timer);
-  }, [message, toast]);
+  }, []); // Remove message dependency to prevent multiple toasts
 
-  return (
-    <>
-      {showConfetti && (
-        <div className="fixed inset-0 pointer-events-none z-50">
-          <Confetti
-            width={window.innerWidth}
-            height={window.innerHeight}
-            recycle={false}
-            numberOfPieces={200}
-          />
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="bg-white/90 px-8 py-4 rounded-lg shadow-lg animate-scale-in">
-              <h2 className="text-2xl font-bold text-primary">{message}</h2>
-            </div>
-          </div>
+  return showConfetti ? (
+    <div className="fixed inset-0 pointer-events-none z-50">
+      <Confetti
+        width={window.innerWidth}
+        height={window.innerHeight}
+        recycle={false}
+        numberOfPieces={200}
+      />
+      <div className="absolute inset-0 flex items-center justify-center">
+        <div className="bg-white/90 px-8 py-4 rounded-lg shadow-lg animate-scale-in">
+          <h2 className="text-2xl font-bold text-primary">{message}</h2>
         </div>
-      )}
-    </>
-  );
+      </div>
+    </div>
+  ) : null;
 };

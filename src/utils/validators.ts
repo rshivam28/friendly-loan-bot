@@ -1,4 +1,8 @@
-export const validateName = (name: string): { isValid: boolean; message: string } => {
+export const validateName = (name: string | File): { isValid: boolean; message: string } => {
+  if (name instanceof File) {
+    return { isValid: false, message: "Expected a string for name" };
+  }
+  
   const nameParts = name.trim().split(' ');
   if (nameParts.length < 2) {
     return { isValid: false, message: "Please enter both first name and last name" };
@@ -16,17 +20,15 @@ export const validateName = (name: string): { isValid: boolean; message: string 
   return { isValid: true, message: "" };
 };
 
-export const validateGender = (gender: string): { isValid: boolean; message: string } => {
+export const validateGender = (gender: string | File): { isValid: boolean; message: string } => {
+  if (gender instanceof File) {
+    return { isValid: false, message: "Expected a string for gender" };
+  }
   const validGenders = ['male', 'female', 'other'];
   return {
     isValid: validGenders.includes(gender.toLowerCase()),
     message: "Please enter Male, Female, or Other"
   };
-};
-
-export const validatePAN = (pan: string): boolean => {
-  const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
-  return panRegex.test(pan);
 };
 
 export const validateAge = (dob: Date): boolean => {
@@ -42,16 +44,44 @@ export const validateAge = (dob: Date): boolean => {
   return age >= 18;
 };
 
-export const validatePinCode = (pinCode: string): boolean => {
-  return /^[1-9][0-9]{5}$/.test(pinCode);
+export const validatePAN = (pan: string | File): { isValid: boolean; message: string } => {
+  if (pan instanceof File) {
+    return { isValid: false, message: "Expected a string for PAN" };
+  }
+  const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
+  return {
+    isValid: panRegex.test(pan),
+    message: "Please enter a valid PAN number (e.g., ABCDE1234F)"
+  };
 };
 
-export const validateSalary = (salary: string): boolean => {
+export const validatePinCode = (pinCode: string | File): { isValid: boolean; message: string } => {
+  if (pinCode instanceof File) {
+    return { isValid: false, message: "Expected a string for PIN code" };
+  }
+  const isValid = /^[1-9][0-9]{5}$/.test(pinCode);
+  return {
+    isValid,
+    message: isValid ? "" : "Please enter a valid 6-digit PIN code"
+  };
+};
+
+export const validateSalary = (salary: string | File): { isValid: boolean; message: string } => {
+  if (salary instanceof File) {
+    return { isValid: false, message: "Expected a string for salary" };
+  }
   const salaryNum = parseInt(salary);
-  return /^\d+$/.test(salary) && salaryNum >= 10000 && salaryNum <= 10000000;
+  const isValid = /^\d+$/.test(salary) && salaryNum >= 10000 && salaryNum <= 10000000;
+  return {
+    isValid,
+    message: isValid ? "" : "Please enter a valid salary between 10,000 and 1,00,00,000"
+  };
 };
 
-export const validateEmploymentType = (type: string): { isValid: boolean; message: string } => {
+export const validateEmploymentType = (type: string | File): { isValid: boolean; message: string } => {
+  if (type instanceof File) {
+    return { isValid: false, message: "Expected a string for employment type" };
+  }
   const validTypes = ['salaried', 'self-employed'];
   return {
     isValid: validTypes.includes(type.toLowerCase()),
@@ -59,7 +89,10 @@ export const validateEmploymentType = (type: string): { isValid: boolean; messag
   };
 };
 
-export const validateCity = (city: string): { isValid: boolean; message: string } => {
+export const validateCity = (city: string | File): { isValid: boolean; message: string } => {
+  if (city instanceof File) {
+    return { isValid: false, message: "Expected a string for city" };
+  }
   const cityRegex = /^[A-Za-z\s]{2,50}$/;
   return {
     isValid: cityRegex.test(city),
