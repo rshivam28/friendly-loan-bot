@@ -206,6 +206,11 @@ const Index = () => {
     initializeChat();
   }, []);
 
+  const handleDynamicResponse = async (answer: string) => {
+    // Generate a response based on validation failure
+    return `I'm sorry, but the value "${answer}" is not valid. Please check the format and try again.`;
+  };
+
   const handlePostApplicationQuestion = async (question: string) => {
     if (!sessionId) return;
 
@@ -269,29 +274,20 @@ const Index = () => {
     }
   };
 
-  const handleSubmit = async (answer: string) => {
+  const handleSubmit = async (answer: string | File) => {
     if (!sessionId) return;
 
     if (isApplicationComplete) {
-      await handlePostApplicationQuestion(answer);
+      await handlePostApplicationQuestion(answer as string);
       return;
     }
 
     const question = questions[currentQuestion];
     
-    await supabase
-      .from('chat_messages')
-      .insert([
-        {
-          session_id: sessionId,
-          message: answer,
-          is_bot: false
-        }
-      ]);
+    let finalAnswer = answer;
+    let uploadedFileUrl = '';
 
-    setMessages((prev) => [...prev, { text: answer, isBot: false }]);
-
-    if (question.type === 'file') {
+    if (question.type === 'file' && answer instanceof File) {
       const formData = new FormData();
       formData.append('file', answer);
       formData.append('sessionId', sessionId);
@@ -316,6 +312,9 @@ const Index = () => {
           });
           return;
         }
+
+        uploadedFileUrl = data.url;
+        finalAnswer = uploadedFileUrl;
       } catch (error) {
         toast({
           variant: "destructive",
@@ -326,8 +325,24 @@ const Index = () => {
       }
     }
 
-    if (question.validation && !question.validation(answer)) {
-      const aiResponse = await handleDynamicResponse(answer);
+    await supabase
+      .from('chat_messages')
+      .insert([
+        {
+          session_id: sessionId,
+          message: typeof finalAnswer === 'string' ? finalAnswer : 'File uploaded',
+          is_bot: false
+        }
+      ]);
+
+    setMessages((prev) => [...prev, { 
+      text: typeof finalAnswer === 'string' ? finalAnswer : 'File uploaded', 
+      isBot: false 
+    }]);
+
+    const validation = question.validation && question.validation(finalAnswer as string);
+    if (validation && !validation.isValid) {
+      const aiResponse = await handleDynamicResponse(finalAnswer as string);
       
       await supabase
         .from('chat_messages')
@@ -344,16 +359,16 @@ const Index = () => {
       toast({
         variant: "destructive",
         title: "Invalid Input",
-        description: "Please check your input and try again.",
+        description: validation.message || "Please check your input and try again.",
       });
       return;
     }
 
-    setAnswers((prev) => ({ ...prev, [question.id]: answer }));
+    setAnswers((prev) => ({ ...prev, [question.id]: finalAnswer }));
 
     await supabase
       .from('chat_sessions')
-      .update({ [question.id]: answer })
+      .update({ [question.id]: finalAnswer })
       .eq('id', sessionId);
 
     const currentSection = getSectionFromQuestion(currentQuestion);

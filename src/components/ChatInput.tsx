@@ -3,7 +3,7 @@ import { Input } from "@/components/ui/input";
 import { useState, useRef } from "react";
 
 interface ChatInputProps {
-  onSubmit: (value: string) => void;
+  onSubmit: (value: string | File) => void;
   placeholder: string;
   type?: string;
   disabled?: boolean;
@@ -18,6 +18,7 @@ export const ChatInput = ({ onSubmit, placeholder, type = "text", disabled }: Ch
     if (type === 'file' && fileInputRef.current?.files?.[0]) {
       onSubmit(fileInputRef.current.files[0]);
       if (fileInputRef.current) fileInputRef.current.value = '';
+      setValue("");
     } else if (value.trim()) {
       onSubmit(value.trim());
       setValue("");
