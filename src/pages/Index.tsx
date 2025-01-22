@@ -22,7 +22,7 @@ type Question = {
   id: string;
   text: string;
   type: string;
-  validation: (value: string | File) => { isValid: boolean; message: string } | boolean;
+  validation: (value: string) => { isValid: boolean; message: string };
   placeholder: string;
   format?: string;
 };
@@ -48,7 +48,10 @@ const questions: Question[] = [
     id: "date_of_birth", 
     text: "Please enter your date of birth (You must be at least 18 years old):", 
     type: "date", 
-    validation: (value) => validateAge(new Date(value)),
+    validation: (value) => ({ 
+      isValid: validateAge(new Date(value)), 
+      message: "You must be at least 18 years old" 
+    }),
     placeholder: "YYYY-MM-DD",
     format: "YYYY-MM-DD"
   },
@@ -59,23 +62,6 @@ const questions: Question[] = [
     validation: validatePAN,
     placeholder: "ABCDE1234F",
     format: "5 Letters + 4 Numbers + 1 Letter"
-  },
-  {
-    id: "payslip",
-    text: "Please upload your latest salary slip in PDF format:",
-    type: "file",
-    validation: (value: string | File) => {
-      if (value instanceof File) {
-        const isValidType = value.type === 'application/pdf';
-        const isValidSize = value.size <= 5 * 1024 * 1024; // 5MB limit
-        if (!isValidType) return { isValid: false, message: "Please upload a PDF file" };
-        if (!isValidSize) return { isValid: false, message: "File size should be less than 5MB" };
-        return { isValid: true, message: "" };
-      }
-      return { isValid: false, message: "Please upload a file" };
-    },
-    placeholder: "Upload PDF file",
-    format: "PDF file up to 5MB"
   },
   {
     id: "company_name",
@@ -169,6 +155,7 @@ const Index = () => {
   const [isApplicationComplete, setIsApplicationComplete] = useState(false);
   const [showCelebration, setShowCelebration] = useState(false);
   const [celebrationMessage, setCelebrationMessage] = useState("");
+  const [lastCelebrationSection, setLastCelebrationSection] = useState("");
   const { toast } = useToast();
 
   useEffect(() => {
@@ -206,10 +193,6 @@ const Index = () => {
 
     initializeChat();
   }, []);
-
-  const handleDynamicResponse = async (answer: string) => {
-    return `I'm sorry, but the value "${answer}" is not valid. Please check the format and try again.`;
-  };
 
   const handlePostApplicationQuestion = async (question: string) => {
     if (!sessionId) return;
@@ -274,113 +257,67 @@ const Index = () => {
     }
   };
 
-  const handleSubmit = async (answer: string | File) => {
+  const handleSubmit = async (answer: string) => {
     if (!sessionId) return;
 
     if (isApplicationComplete) {
-      if (typeof answer === 'string') {
-        await handlePostApplicationQuestion(answer);
-      }
+      await handlePostApplicationQuestion(answer);
       return;
     }
 
     const question = questions[currentQuestion];
-    let finalAnswer: string = '';
-
-    if (question.type === 'file' && answer instanceof File) {
-      const formData = new FormData();
-      formData.append('file', answer);
-      formData.append('sessionId', sessionId);
-
-      try {
-        const response = await fetch('/functions/v1/handle-file-upload', {
-          method: 'POST',
-          body: formData,
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to upload file');
-        }
-
-        const data = await response.json();
-        
-        if (data.error) {
-          toast({
-            variant: "destructive",
-            title: "Upload Error",
-            description: data.error,
-          });
-          return;
-        }
-
-        finalAnswer = data.url;
-      } catch (error) {
-        toast({
-          variant: "destructive",
-          title: "Upload Error",
-          description: "Failed to upload file. Please try again.",
-        });
-        return;
-      }
-    } else if (typeof answer === 'string') {
-      finalAnswer = answer;
-    }
 
     await supabase
       .from('chat_messages')
       .insert([
         {
           session_id: sessionId,
-          message: question.type === 'file' ? 'File uploaded' : finalAnswer,
+          message: answer,
           is_bot: false
         }
       ]);
 
-    setMessages((prev) => [...prev, { 
-      text: question.type === 'file' ? 'File uploaded' : finalAnswer, 
-      isBot: false 
-    }]);
+    setMessages((prev) => [...prev, { text: answer, isBot: false }]);
 
     const validationResult = question.validation(answer);
-    const isValid = typeof validationResult === 'boolean' ? validationResult : validationResult.isValid;
-    const validationMessage = typeof validationResult === 'boolean' ? '' : validationResult.message;
 
-    if (!isValid) {
-      const aiResponse = await handleDynamicResponse(finalAnswer);
+    if (!validationResult.isValid) {
+      const errorMessage = `I'm sorry, but the value "${answer}" is not valid. ${validationResult.message}`;
       
       await supabase
         .from('chat_messages')
         .insert([
           {
             session_id: sessionId,
-            message: aiResponse,
+            message: errorMessage,
             is_bot: true
           }
         ]);
 
-      setMessages((prev) => [...prev, { text: aiResponse, isBot: true }]);
+      setMessages((prev) => [...prev, { text: errorMessage, isBot: true }]);
       
       toast({
         variant: "destructive",
         title: "Invalid Input",
-        description: validationMessage || "Please check your input and try again.",
+        description: validationResult.message,
       });
       return;
     }
 
-    setAnswers((prev) => ({ ...prev, [question.id]: finalAnswer }));
+    setAnswers((prev) => ({ ...prev, [question.id]: answer }));
 
     await supabase
       .from('chat_sessions')
-      .update({ [question.id]: finalAnswer })
+      .update({ [question.id]: answer })
       .eq('id', sessionId);
 
     const currentSection = getSectionFromQuestion(currentQuestion);
     const nextSection = getSectionFromQuestion(currentQuestion + 1);
 
-    if (currentSection !== nextSection) {
+    if (currentSection !== nextSection && currentSection !== lastCelebrationSection) {
       setCelebrationMessage(`Great job! You've completed the ${currentSection} section!`);
       setShowCelebration(true);
+      setLastCelebrationSection(currentSection);
       setTimeout(() => setShowCelebration(false), 5000);
     }
 
@@ -421,16 +358,15 @@ const Index = () => {
       setIsApplicationComplete(true);
       setCelebrationMessage("Congratulations! Your loan application is complete! 🎉");
       setShowCelebration(true);
+      setLastCelebrationSection("completion");
     }
   };
 
   const getSectionFromQuestion = (questionIndex: number) => {
     if (questionIndex < 4) return "Personal Details";
-    if (questionIndex < 5) return "Income Verification";
-    if (questionIndex < 6) return "Employment Details";
-    if (questionIndex < 11) return "Office Address";
-    if (questionIndex < 12) return "Email Verification";
-    if (questionIndex < 13) return "Offer Details";
+    if (questionIndex < 5) return "Employment Details";
+    if (questionIndex < 10) return "Office Address";
+    if (questionIndex < 11) return "Email Verification";
     return "Loan Summary";
   };
 
