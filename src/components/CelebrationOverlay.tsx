@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import Confetti from "react-confetti";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 
 interface CelebrationOverlayProps {
   message: string;
@@ -11,20 +11,13 @@ export const CelebrationOverlay = ({ message }: CelebrationOverlayProps) => {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Show celebration toast only once when the component mounts
-    toast({
-      title: "🎉 Hurray!",
-      description: message,
-      className: "animate-bounce",
-    });
-
     // Hide confetti after 5 seconds
     const timer = setTimeout(() => {
       setShowConfetti(false);
     }, 5000);
 
     return () => clearTimeout(timer);
-  }, []); // Remove message dependency to prevent multiple toasts
+  }, []); // Empty dependency array to run only once
 
   return showConfetti ? (
     <div className="fixed inset-0 pointer-events-none z-50">
