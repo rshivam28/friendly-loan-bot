@@ -22,7 +22,7 @@ type Question = {
   id: string;
   text: string;
   type: string;
-  validation: (value: string) => { isValid: boolean; message: string } | boolean;
+  validation: (value: string | File) => { isValid: boolean; message: string } | boolean;
   placeholder: string;
   format?: string;
 };
@@ -64,14 +64,15 @@ const questions: Question[] = [
     id: "payslip",
     text: "Please upload your latest salary slip in PDF format:",
     type: "file",
-    validation: (file) => {
-      if (!file) return { isValid: false, message: "Please upload a file" };
-      const fileObj = file as File;
-      const isValidType = fileObj.type === 'application/pdf';
-      const isValidSize = fileObj.size <= 5 * 1024 * 1024; // 5MB limit
-      if (!isValidType) return { isValid: false, message: "Please upload a PDF file" };
-      if (!isValidSize) return { isValid: false, message: "File size should be less than 5MB" };
-      return { isValid: true, message: "" };
+    validation: (value: string | File) => {
+      if (value instanceof File) {
+        const isValidType = value.type === 'application/pdf';
+        const isValidSize = value.size <= 5 * 1024 * 1024; // 5MB limit
+        if (!isValidType) return { isValid: false, message: "Please upload a PDF file" };
+        if (!isValidSize) return { isValid: false, message: "File size should be less than 5MB" };
+        return { isValid: true, message: "" };
+      }
+      return { isValid: false, message: "Please upload a file" };
     },
     placeholder: "Upload PDF file",
     format: "PDF file up to 5MB"
@@ -207,7 +208,6 @@ const Index = () => {
   }, []);
 
   const handleDynamicResponse = async (answer: string) => {
-    // Generate a response based on validation failure
     return `I'm sorry, but the value "${answer}" is not valid. Please check the format and try again.`;
   };
 
@@ -278,14 +278,14 @@ const Index = () => {
     if (!sessionId) return;
 
     if (isApplicationComplete) {
-      await handlePostApplicationQuestion(answer as string);
+      if (typeof answer === 'string') {
+        await handlePostApplicationQuestion(answer);
+      }
       return;
     }
 
     const question = questions[currentQuestion];
-    
-    let finalAnswer = answer;
-    let uploadedFileUrl = '';
+    let finalAnswer: string = '';
 
     if (question.type === 'file' && answer instanceof File) {
       const formData = new FormData();
@@ -313,8 +313,7 @@ const Index = () => {
           return;
         }
 
-        uploadedFileUrl = data.url;
-        finalAnswer = uploadedFileUrl;
+        finalAnswer = data.url;
       } catch (error) {
         toast({
           variant: "destructive",
@@ -323,6 +322,8 @@ const Index = () => {
         });
         return;
       }
+    } else if (typeof answer === 'string') {
+      finalAnswer = answer;
     }
 
     await supabase
@@ -330,19 +331,22 @@ const Index = () => {
       .insert([
         {
           session_id: sessionId,
-          message: typeof finalAnswer === 'string' ? finalAnswer : 'File uploaded',
+          message: question.type === 'file' ? 'File uploaded' : finalAnswer,
           is_bot: false
         }
       ]);
 
     setMessages((prev) => [...prev, { 
-      text: typeof finalAnswer === 'string' ? finalAnswer : 'File uploaded', 
+      text: question.type === 'file' ? 'File uploaded' : finalAnswer, 
       isBot: false 
     }]);
 
-    const validation = question.validation && question.validation(finalAnswer as string);
-    if (validation && !validation.isValid) {
-      const aiResponse = await handleDynamicResponse(finalAnswer as string);
+    const validationResult = question.validation(answer);
+    const isValid = typeof validationResult === 'boolean' ? validationResult : validationResult.isValid;
+    const validationMessage = typeof validationResult === 'boolean' ? '' : validationResult.message;
+
+    if (!isValid) {
+      const aiResponse = await handleDynamicResponse(finalAnswer);
       
       await supabase
         .from('chat_messages')
@@ -359,7 +363,7 @@ const Index = () => {
       toast({
         variant: "destructive",
         title: "Invalid Input",
-        description: validation.message || "Please check your input and try again.",
+        description: validationMessage || "Please check your input and try again.",
       });
       return;
     }

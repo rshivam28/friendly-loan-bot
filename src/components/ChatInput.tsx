@@ -19,7 +19,10 @@ export const ChatInput = ({ onSubmit, placeholder, type = "text", disabled }: Ch
       onSubmit(fileInputRef.current.files[0]);
       if (fileInputRef.current) fileInputRef.current.value = '';
       setValue("");
-    } else if (value.trim()) {
+      return;
+    }
+    
+    if (value.trim()) {
       onSubmit(value.trim());
       setValue("");
     }
@@ -36,7 +39,7 @@ export const ChatInput = ({ onSubmit, placeholder, type = "text", disabled }: Ch
           disabled={disabled}
           onChange={(e) => setValue(e.target.value)}
         />
-        <Button type="submit" disabled={disabled || !value}>
+        <Button type="submit" disabled={disabled}>
           Upload
         </Button>
       </form>
